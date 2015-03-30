@@ -41,7 +41,7 @@ def resizeImage(img, output):
 def downloadBoxart(path, output):
 	os.system("wget -q %s --output-document=\"%s\"" % (path,output))
 	try:
-		print output
+		#print output
 		resizeImage(Image.open(output), output)		
 	except Exception as e:
 		print "Image resize error"
@@ -68,7 +68,7 @@ def readConfig(file):
 				system=(name,path,ext,platform)
 				systems.append(system)
     
-	print systems
+	#print systems
 	return systems
 	
 def getPlatformId(_platforms):	
@@ -79,6 +79,18 @@ def getPlatformId(_platforms):
 			
 	return platform
 	#print platforms
+	
+def getRomType(filename):
+	if "(Proto)" in filename :
+		return "Prototype"
+	else :
+		return "Official"
+
+def skipGame(list, filepath):
+	for game in list.iter("game"):
+		if game.findtext("path") == filepath:			
+			print "Game \"%s\" already in gamelist. Skipping.." % os.path.basename(filepath)
+			return True
 		
 
 def scanFiles(SystemInfo):
@@ -86,31 +98,39 @@ def scanFiles(SystemInfo):
 	emulatorname = SystemInfo[0]
 	folderRoms = SystemInfo[1]
 	extension = SystemInfo[2]
-	platform = getPlatformId(SystemInfo[3])
+	platformname = SystemInfo[3]
+	platform = getPlatformId(platformname)
 	
-	global gamelistExists
+	
+	
 	gamelistExists = False
+	existinglist = None
+	
 	
 	print "Scanning folder..(%s)" % folderRoms
 	gamelist_path = gamelists_path+"%s/gamelist.xml" % emulatorname
 	
+	if not os.path.exists(boxart_path + "%s" % platformname):
+		#print "NOT EXISTS"+boxart_path + platformname
+		os.mkdir(boxart_path + "%s" % platformname)
+	
 	if os.path.exists(gamelist_path):
+		
 		try:
+			print "path : " +gamelist_path
 			existinglist = ET.parse(gamelist_path)
 			gamelistExists=True			
 		except:
 			gamelistExists = False
-			print "There was an error parsing the list or file is empty"
-		return
+			print "There was an error parsing the list or file is empty"		
 
 		
 	for root, dirs, allfiles in os.walk(folderRoms, followlinks=True):
 		extension = ""
 		allfiles.sort()
 		#limit De recherche
-		
-		limit = 2
-		i = 0
+			
+		gamelist = Element('gameList')
 		for files in allfiles:
 			
 			if extension=="" or files.endswith(tuple(extension.split(' '))):
@@ -118,15 +138,23 @@ def scanFiles(SystemInfo):
 					filepath = os.path.abspath(os.path.join(root, files))
 					filepath = filepath.replace(folderRoms, ".")
 					filename = os.path.splitext(files)[0]
-					if limit > i :
-						print platform
-						
-						gameToScrap = searchGames(filepath,platform)
-						gameDataToXml(scrapGame(str(gameToScrap[1])),gamelist_path)												
-					i +=1
+					if gamelistExists:
+						if skipGame(existinglist,filepath):
+							continue
+					print "\nTrying to identify %s.." % files
 					
- 				except Exception, e:
-					print "error"+ str(e)
+														
+					gameToScrap = searchGames(filepath,platform)
+					#gameDataToXml(scrapGame(str(gameToScrap[1])),gamelist_path,gamelistExists,existinglist,filepath)
+					gamelist = gameDataToXml(scrapGame(str(gameToScrap[1]),platformname,filename),filepath,gamelist)
+									
+ 				
+				except KeyboardInterrupt:
+					print "Ctrl+C detected. Closing work now..."
+					break
+				except Exception as e:
+					print "Exception caught! %s" % e
+		exportList(gamelist, gamelist_path,gamelistExists,existinglist)
 	
 
 	
@@ -173,6 +201,17 @@ def indent(elem, level=0):
             elem.tail = i
 	
 	
+def exportList(gamelist, gamelist_path,gamelistExists,existinglist):
+	if gamelistExists:
+		for game in gamelist.iter('game'):
+			existinglist.getroot().append(game)
+		indent(existinglist.getroot())
+		ET.ElementTree(existinglist.getroot()).write(gamelist_path)
+		print "Done! List saved on %s" % gamelist_path
+	else:
+		indent(gamelist)
+		ET.ElementTree(gamelist).write(gamelist_path)
+		print "Done! List saved on %s" % gamelist_path
 
 def getPlatforms():
 	platforms = ET.parse('./GameFaqsPlatforms.xml')
@@ -180,7 +219,7 @@ def getPlatforms():
 	for platform in platformsroot:
 		gamesdb_platforms[platform.find('es').text] = platform.find('db').text
 
-def scrapGame(gameId):
+def scrapGame(gameId,emulatorname,filename):
 	gamereqDesc = urllib2.Request(GAMESDB_BASE+gameId, urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
 	sleepTime = random.randint(0,random.randint(5,15)) % random.randint(1,random.randint(1,13))
 	print "WAIT "+str(sleepTime)+"second...... to avoid blacklisting"
@@ -201,8 +240,10 @@ def scrapGame(gameId):
 	try:    
 		options = []
 		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")
-		print "Downloading boxart..."
-		downloadBoxart(imgSource, homepath + "/Documents/downloaded_images/test.jpg")
+		print "Downloading boxart..."		
+		imgpath = boxart_path + "%s/%s-image%s" % (emulatorname, filename,os.path.splitext(imgSource)[1])
+		print imgpath
+		downloadBoxart(imgSource, imgpath)
 		descTemp = soupDesc.find('div', {'class': 'desc'}).text
 		
 		data = soupData.find('div', {'class': 'pod_titledata'}).findAll('dt')
@@ -211,8 +252,12 @@ def scrapGame(gameId):
 				
 				if elem.text == "Genre:":
 					genreTemp = elem.findNext('dd').text
+				else :
+					genreTemp = "not find"
 				if elem.text == "Developer:":
-					developerTemp = elem.findNext('dd').text		
+					developerTemp = elem.findNext('dd').text
+				else :
+					developerTemp = "Not find"
 		
 		tableData = soupData.findAll('td',attrs={'class' : 'cbox'})
 		if tableData:		
@@ -222,22 +267,22 @@ def scrapGame(gameId):
 				regionTemp = nextTr.find('td',attrs={'class' : 'cregion'}).text
 				publisherTemp = nextTr.find('td',attrs={'class' : 'datacompany'}).text
 				dateTemp = nextTr.find('td',attrs={'class' : 'cdate'}).text			
-				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp))
+				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp,imgpath,filename))
 		
 		gameData = options[chooseResult(options)]
 		return gameData
 		
 	except Exception, e:
-		print "error"+ str(e)
+		print "error 2"+ str(e)
 
 def searchGames(file,platform):
 	options = []
 	title = re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
-	#print title		
+			
 	gamereqList = urllib2.Request(GAMESDB_LIST % (platform,title.replace (" ", "%20")), urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
 	#gamereqList = urllib2.Request(GAMESDB_LIST % (63, "mario"), urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
 	sleepTime = random.randint(0,random.randint(5,15)) % random.randint(1,random.randint(1,13))
-	print "WAIT "+str(sleepTime)+"second...... to avoid blacklisting"
+	print "WAIT "+str(sleepTime)+" second...... to avoid blacklisting"
 	time.sleep(sleepTime)
 	
 	try:
@@ -254,30 +299,19 @@ def searchGames(file,platform):
 					options.append((gameTitle.text.strip(),gameId))					
 		
 		gameChoice = options[chooseSearchResult(options)] 
-		print gameChoice
+		
 		return gameChoice
 					
 	
 	except Exception, e:
 		print "error soup"+ str(e)
 	
-def exportList(gamelist, gamelist_path):
-	if gameListExists:
-		for game in gamelist.iter('game'):
-			existinglist.getroot().append(game)
-		indent(existinglist.getroot())
-		ET.ElementTree(existinglist.getroot()).write(gamelist_path)
-		print "Done! List saved on %s" % gamelist_path
-	else:
-		indent(gameList)
-		ET.ElementTree(gamelist).write(gamelist_path)
-		print "Done! List saved on %s" % gamelist_path
 		
-def gameDataToXml(gameData,gamelist_path):
+def gameDataToXml(gameData,filepath,gamelist):
 
 	
 
-	gamelist = Element('gameList')
+	#gamelist = Element('gameList')
 	game = SubElement(gamelist, 'game',{'id' : str(args.n), 'source' : "gamefaqs.com" })
 	path = SubElement(game, 'path')
 	name = SubElement(game, 'name')
@@ -291,23 +325,33 @@ def gameDataToXml(gameData,gamelist_path):
 	genres = SubElement(game, 'genres')
 	region = SubElement(game, 'region')
 	romtype = SubElement(game, 'romtype')
-
-
-	path.text = "testPath"
-	name.text = str(gameData[0])
-	desc.text = str(gameData[6])
-	image.text = "testImage"
-	releasedate.text = str(gameData[3])
-	publisher.text = str(gameData[2])
-	developer.text = str(gameData[5])
+	
+	
+	if str(filepath) is not None :
+		path.text = str(filepath)
+	if str(gameData[8]) is not None:
+		name.text = str(gameData[8])
+	if str(gameData[6]) is not None:
+		desc.text = str(gameData[6])
+	if str(gameData[7]) is not None:
+		image.text = str(gameData[7])
+		romtype.text = getRomType(str(gameData[7]))
+	if str(gameData[3]) is not None:
+		releasedate.text = str(gameData[3])
+	if str(gameData[2]) is not None:
+		publisher.text = str(gameData[2])
+	if str(gameData[5]) is not None:
+		developer.text = str(gameData[5])
 	rating.text = "testRating"
 	players.text = "testPlayers"
-	genres.text = str(gameData[4])
-	region.text = str(gameData[1])
-	romtype.text = "testRomType"
+	if str(gameData[4]) is not None:
+		genres.text = str(gameData[4])
+	if str(gameData[1]) is not None:
+		region.text = str(gameData[1])
+	
 
-	exportList(gamelist, gamelist_path)
-
+	#exportList(gamelist, gamelist_path,gamelistExists,existinglist)
+	return gamelist
 
 	
 if os.getuid() == 0:
@@ -321,7 +365,7 @@ gamelists_path = homepath + "/Documents/Recalbox-scraper/gamelists/"
 boxart_path = homepath + "/Documents/Recalbox-scraper/downloaded_images/"
 
 getPlatforms()
-print gamesdb_platforms	
+#print gamesdb_platforms	
 #gameDataToXml(scrapGame(str(args.n)),homepath)
 #searchGames(args.r)
 
@@ -346,34 +390,6 @@ for i,v in enumerate(ES_systems):
 
 
 
-#for root, dirs, allfiles in os.walk(args.r, followlinks=True):
-#	extension = ""
-#	allfiles.sort()
-#	#limit De recherche
-#	limit = 1
-#	i = 0
-#	for files in allfiles:
-#		if extension=="" or files.endswith(tuple(extension.split(' '))):
-#			try:
-##			
-#				filepath = os.path.abspath(os.path.join(root, files))
-#				filepath = filepath.replace(args.r, ".")
-#				filename = os.path.splitext(files)[0]
-#				if limit > i :
-#					#gameToScrap = searchGames(filepath,gamesdb_platforms)
-#					#gameDataToXml(scrapGame(str(gameToScrap[1])),homepath)
-#					scanFiles(ES_systems)
-#					print ''
-#					
-#				i +=1
-#				
-#			except Exception, e:
-#				print "error"+ str(e)
-
-
-
-	
-	
 
 
 
