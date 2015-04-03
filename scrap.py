@@ -14,6 +14,7 @@ import time
 import random
 import glob
 import sys
+import datetime
 
 parser = argparse.ArgumentParser(description='ES-scraper, a scraper for EmulationStation')
 parser.add_argument("-n", metavar="gameId", help="game ID", type=int)
@@ -85,7 +86,73 @@ def getRomType(filename):
 		return "Prototype"
 	else :
 		return "Official"
+		
+def getRegion(filename):
+	region = re.search('\((.+?)\)', filename)
+	if region :
+		return region.group(1)
+	else: 
+		return ""
 
+def getPlayers(strplayer):
+	players = ['8','7','6','5','4','3','2','1']
+	for i,v in enumerate(players):
+		print "PLAYER TABLEAU " + v 
+		print "STR PLAYERS" + strplayer
+		if v in strplayer:
+			print "PLAYERSSSS : " + v
+			return v
+		
+
+def getDate(date):
+	month = ['January','February','March','April','May','June','July','August','September','October','November','Deceber']
+	if "/" in date:
+		
+		slist = date.split("/")
+		if 59 <= int(slist[2]) <= 99:
+			year = '19' + slist[2]
+		else:
+			year = '20' + slist[2]
+		formatDate = datetime.date(int(year),int(slist[0]),int(slist[1]))
+		
+	elif len(date) is 4:
+		
+		formatDate = datetime.date(int(date),1,1)
+		
+	else :
+		for i,v in enumerate(month):
+			if v in date:
+				numMonth = i+1					
+				year = date.replace(v,"").strip()				
+				formatDate = datetime.date(int(year),numMonth,1)
+				
+	ReleaseDate = str(formatDate).replace("-","")+"T000000"
+	return ReleaseDate
+
+def getGenre(genre):
+	gameDB = [ 'Action',
+	'Adventure',
+	'Construction and Management Simulation',
+    'Role-Playing',
+    'Puzzle',
+    'Strategy',
+    'Racing',
+    'Shooter',
+    'Life Simulation',
+    'Fighting',
+    'Sports',
+    'Sandbox',
+    'Flight Simulator',
+    'MMO',
+    'Platform',
+    'Stealth',
+    'Music',
+    'Horror']
+	
+	for i,v in enumerate(gameDB):		
+		if v in genre:			
+			return v
+	
 def skipGame(list, filepath):
 	for game in list.iter("game"):
 		if game.findtext("path") == filepath:			
@@ -159,7 +226,9 @@ def scanFiles(SystemInfo):
 
 	
 def chooseResult(options):
-	if len(options) >0:		
+	if len(options) >0:
+		if len(options) == 1:
+			return 0
 		for i,v in enumerate(options):
 			name = v[0]
 			region = v[1]
@@ -173,7 +242,9 @@ def chooseResult(options):
 		return int(choice)
 
 def chooseSearchResult(options):
-	if len(options) >0:		
+	if len(options) >0:	
+		if len(options) == 1:
+			return 0	
 		for i,v in enumerate(options):
 			name = v[0]
 			gameId = v[1]
@@ -246,18 +317,25 @@ def scrapGame(gameId,emulatorname,filename):
 		downloadBoxart(imgSource, imgpath)
 		descTemp = soupDesc.find('div', {'class': 'desc'}).text
 		
+		
 		data = soupData.find('div', {'class': 'pod_titledata'}).findAll('dt')
+		print soupData.find('div', {'class': 'pod_titledata'}).findAll('dt')
 		if data :
-			for elem in data:
-				
-				if elem.text == "Genre:":
-					genreTemp = elem.findNext('dd').text
-				else :
-					genreTemp = "not find"
+			genreTemp = None
+			developerTemp = None
+			numberofplayerTemp = None
+			for elem in data:	
+				print elem.text				
+				if elem.text == "Genre:":					
+					genreTemp = elem.findNext('dd').text				
 				if elem.text == "Developer:":
 					developerTemp = elem.findNext('dd').text
-				else :
-					developerTemp = "Not find"
+				if "Players" in elem.text:
+					print elem.text
+					print "Value" + elem.findNext('dd').text
+					numberofplayerTemp = elem.findNext('dd').text
+
+				
 		
 		tableData = soupData.findAll('td',attrs={'class' : 'cbox'})
 		if tableData:		
@@ -267,7 +345,7 @@ def scrapGame(gameId,emulatorname,filename):
 				regionTemp = nextTr.find('td',attrs={'class' : 'cregion'}).text
 				publisherTemp = nextTr.find('td',attrs={'class' : 'datacompany'}).text
 				dateTemp = nextTr.find('td',attrs={'class' : 'cdate'}).text			
-				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp,imgpath,filename))
+				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp,imgpath,filename,gameId,numberofplayerTemp))
 		
 		gameData = options[chooseResult(options)]
 		return gameData
@@ -312,7 +390,7 @@ def gameDataToXml(gameData,filepath,gamelist):
 	
 
 	#gamelist = Element('gameList')
-	game = SubElement(gamelist, 'game',{'id' : str(args.n), 'source' : "gamefaqs.com" })
+	game = SubElement(gamelist, 'game',{'id' : str(gameData[9]), 'source' : "gamefaqs.com" })
 	path = SubElement(game, 'path')
 	name = SubElement(game, 'name')
 	desc = SubElement(game, 'desc')
@@ -327,27 +405,28 @@ def gameDataToXml(gameData,filepath,gamelist):
 	romtype = SubElement(game, 'romtype')
 	
 	
-	if str(filepath) is not None :
+	if filepath is not None:
 		path.text = str(filepath)
-	if str(gameData[8]) is not None:
+	if gameData[8] is not None:
 		name.text = str(gameData[8])
-	if str(gameData[6]) is not None:
+	if gameData[6] is not None:
 		desc.text = str(gameData[6])
-	if str(gameData[7]) is not None:
+	if gameData[7] is not None:
 		image.text = str(gameData[7])
 		romtype.text = getRomType(str(gameData[7]))
-	if str(gameData[3]) is not None:
-		releasedate.text = str(gameData[3])
-	if str(gameData[2]) is not None:
+	if gameData[3] is not None:			
+		releasedate.text = getDate(str(gameData[3]))
+	if gameData[2] is not None:
 		publisher.text = str(gameData[2])
-	if str(gameData[5]) is not None:
-		developer.text = str(gameData[5])
-	rating.text = "testRating"
-	players.text = "testPlayers"
-	if str(gameData[4]) is not None:
-		genres.text = str(gameData[4])
-	if str(gameData[1]) is not None:
-		region.text = str(gameData[1])
+	if gameData[5] is not None:
+		developer.text = str(gameData[5])	
+	if gameData[10] is not None:		
+		players.text = getPlayers(str(gameData[10]))	
+	if gameData[4] is not None:			
+		genres.text = getGenre(str(gameData[4]))		
+	if gameData[8] is not None:
+		region.text = getRegion(str(gameData[8]))
+		
 	
 
 	#exportList(gamelist, gamelist_path,gamelistExists,existinglist)
