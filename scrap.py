@@ -70,7 +70,7 @@ def readConfig(file):
 				system=(name,path,ext,platform)
 				systems.append(system)
 
-	
+
 	return systems
 
 def getPlatformId(_platforms):
@@ -159,7 +159,7 @@ def skipGame(list, filepath):
 
 
 def scanFiles(SystemInfo):
-
+	print "System info : " + str(SystemInfo)
 	emulatorname = SystemInfo[0]
 	folderRoms = SystemInfo[1]
 	extension = SystemInfo[2]
@@ -460,6 +460,8 @@ for i,v in enumerate(ES_systems):
 	print "[%s] %s" % (i,v[0])
 try:
 	var = int(raw_input("System ID: "))
+	print "choix : " + var
 	scanFiles(ES_systems[var])
 except:
+		print "erreur choix"
 		sys.exit()
