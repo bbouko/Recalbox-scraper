@@ -455,7 +455,7 @@ if not os.path.exists(essettings_path):
 		sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 
 ES_systems = readConfig(open(essettings_path))
-
+print "config" + ES_systems
 for i,v in enumerate(ES_systems):
 	print "[%s] %s" % (i,v[0])
 try:
