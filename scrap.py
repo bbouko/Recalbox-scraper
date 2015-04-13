@@ -462,6 +462,6 @@ try:
 	var = int(raw_input("System ID: "))
 	print "choix : " + var
 	scanFiles(ES_systems[var])
-except:
-		print "erreur choix"
+except Exception, e:
+		print "erreur choix" + str(e)
 		sys.exit()
