@@ -460,7 +460,7 @@ for i,v in enumerate(ES_systems):
 	print "[%s] %s" % (i,v[0])
 try:
 	var = int(raw_input("System ID: "))
-	print "choix : " + var
+	print "choix : " + str(var)
 	scanFiles(ES_systems[var])
 except Exception, e:
 		print "erreur choix" + str(e)
