@@ -292,11 +292,11 @@ def getPlatforms():
 
 def scrapGame(gameId,emulatorname,filename):
 	gamereqDesc = urllib2.Request(GAMESDB_BASE+gameId, urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
-	#sleepTime = random.randint(0,random.randint(5,15)) % random.randint(1,random.randint(1,13))
+
 	print "WAIT "+str(2)+" second...... to avoid blacklisting"
 	time.sleep(2)
 	gamereqData = urllib2.Request(GAMESDB_BASE+gameId+"/data", urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
-	#sleepTime = random.randint(0,random.randint(5,15)) % random.randint(1,random.randint(1,13))
+
 	print "WAIT "+str(2)+" second...... to avoid blacklisting"
 	time.sleep(2)
 
@@ -311,9 +311,9 @@ def scrapGame(gameId,emulatorname,filename):
 	try:
 		options = []
 		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")
-		print "Downloading boxart..."
+		#print "Downloading boxart..."
 		imgpath = boxart_path + "%s/%s-image%s" % (emulatorname, filename,os.path.splitext(imgSource)[1])
-		downloadBoxart(imgSource, imgpath)
+		#downloadBoxart(imgSource, imgpath)
 		descTemp = soupDesc.find('div', {'class': 'desc'}).text
 		data = soupData.find('div', {'class': 'pod_titledata'}).findAll('dt')
 
@@ -328,13 +328,10 @@ def scrapGame(gameId,emulatorname,filename):
 				if elem.text == "Developer:":
 					developerTemp = elem.findNext('dd').text
 				if "Players" in elem.text:
-					#print elem.text
-					#print "Value" + elem.findNext('dd').text
 					numberofplayerTemp = elem.findNext('dd').text
 
-
-
 		tableData = soupData.findAll('td',attrs={'class' : 'cbox'})
+
 		if tableData:
 			for elem in tableData:
 				nextTr = elem.findNext('tr')
@@ -345,6 +342,8 @@ def scrapGame(gameId,emulatorname,filename):
 				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp,imgpath,filename,gameId,numberofplayerTemp))
 
 		gameData = options[chooseResult(options)]
+		print "Downloading boxart..."	
+		downloadBoxart(imgSource, imgpath)
 		return gameData
 
 	except Exception, e:
@@ -353,10 +352,7 @@ def scrapGame(gameId,emulatorname,filename):
 def searchGames(file,platform):
 	options = []
 	title = re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
-
 	gamereqList = urllib2.Request(GAMESDB_LIST % (platform,title.replace (" ", "%20")), urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
-	#gamereqList = urllib2.Request(GAMESDB_LIST % (63, "mario"), urllib.urlencode({}),headers={'User-Agent' : "Recalbox Scraper Browser"})
-	#sleepTime = random.randint(0,random.randint(5,15)) % random.randint(1,random.randint(1,13))
 	print "WAIT "+str(2)+" second...... to avoid blacklisting"
 	time.sleep(2)
 
@@ -366,13 +362,10 @@ def searchGames(file,platform):
 		for elem in scrapData :
 			if elem.findNext('div').text ==  "Best Matches":
 				gameTitles = elem.find_all('td', attrs={'class' : 'rtitle'})
-
 				for gameTitle in gameTitles :
-					#get link + remove first /
 					gameLink = gameTitle.find('a')['href'][1:]
 					gameId = gameLink[gameLink.find("/")+1:gameLink.find("-")]
 					options.append((gameTitle.text.strip(),gameId))
-
 		gameChoice = options[chooseSearchResult(options)]
 
 		return gameChoice
@@ -441,9 +434,7 @@ gamelists_path = homepath + "/Documents/Recalbox-scraper/gamelists/"
 boxart_path = homepath + "/Documents/Recalbox-scraper/downloaded_images/"
 
 getPlatforms()
-#print gamesdb_platforms
-#gameDataToXml(scrapGame(str(args.n)),homepath)
-#searchGames(args.r)
+
 
 if not os.path.exists(essettings_path):
 	essettings_path = "/etc/emulationstation/es_systems.cfg"
@@ -460,7 +451,6 @@ for i,v in enumerate(ES_systems):
 	print "[%s] %s" % (i,v[0])
 try:
 	var = int(raw_input("System ID: "))
-	print "choix : " + str(var)
 	scanFiles(ES_systems[var])
 except Exception, e:
 		print "erreur choix" + str(e)
