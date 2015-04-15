@@ -310,10 +310,8 @@ def scrapGame(gameId,emulatorname,filename):
 
 	try:
 		options = []
-		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")
-		#print "Downloading boxart..."
+		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")		
 		imgpath = boxart_path + "%s/%s-image%s" % (emulatorname, filename,os.path.splitext(imgSource)[1])
-		#downloadBoxart(imgSource, imgpath)
 		descTemp = soupDesc.find('div', {'class': 'desc'}).text
 		data = soupData.find('div', {'class': 'pod_titledata'}).findAll('dt')
 
@@ -342,7 +340,7 @@ def scrapGame(gameId,emulatorname,filename):
 				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp,imgpath,filename,gameId,numberofplayerTemp))
 
 		gameData = options[chooseResult(options)]
-		print "Downloading boxart..."	
+		print "Downloading boxart..."
 		downloadBoxart(imgSource, imgpath)
 		return gameData
 
