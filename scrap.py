@@ -154,7 +154,7 @@ def getGenre(genre):
 def skipGame(list, filepath):
 	for game in list.iter("game"):
 		if game.findtext("path") == filepath:
-			print "Game \"%s\" already in gamelist. Skipping.." % os.path.basename(filepath)
+			print "Game \"%s\" already in gamelist. Skipping... " % os.path.basename(filepath)
 			return True
 
 
@@ -207,11 +207,17 @@ def scanFiles(SystemInfo):
 						if skipGame(existinglist,filepath):
 							continue
 					print "\nTrying to identify %s.." % files
-
-
 					gameToScrap = searchGames(filepath,platform)
+					if gameToScrap is None:
+						print "Skipping Game %s ..." % files
+						continue
 					#gameDataToXml(scrapGame(str(gameToScrap[1])),gamelist_path,gamelistExists,existinglist,filepath)
-					gamelist = gameDataToXml(scrapGame(str(gameToScrap[1]),platformname,filename),filepath,gamelist)
+					gamedata = scrapGame(str(gameToScrap[1]),platformname,filename)
+					print "gamedata" + str(gamedata)
+					if gamedata is None:
+						print "Skipping Game %s ..." % files
+						continue
+					gamelist = gameDataToXml(gamedata,filepath,gamelist)
 
 
 				except KeyboardInterrupt:
@@ -237,7 +243,9 @@ def chooseResult(options):
 				print " [%s] (%s) %s %s" % (i,region, name,date)
 			except Exception, e:
 				"Error ChooseResult : " + str(e)
-		choice = raw_input("Select a result :")
+		choice = raw_input("Select a result or press enter to skip:")
+		if not choice and choice != "0":
+			return None
 		return int(choice)
 
 def chooseSearchResult(options):
@@ -253,7 +261,9 @@ def chooseSearchResult(options):
 				print " [%s] %s" % (i,name)
 			except Exception, e:
 				"Error ChooseResult : " + str(e)
-		choice = raw_input("Select a result :")
+		choice = raw_input("Select a result or press enter to skip:")
+		if not choice and choice != "0":
+			return None
 		return int(choice)
 
 def indent(elem, level=0):
@@ -310,7 +320,7 @@ def scrapGame(gameId,emulatorname,filename):
 
 	try:
 		options = []
-		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")		
+		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")
 		imgpath = boxart_path + "%s/%s-image%s" % (emulatorname, filename,os.path.splitext(imgSource)[1])
 		descTemp = soupDesc.find('div', {'class': 'desc'}).text
 		data = soupData.find('div', {'class': 'pod_titledata'}).findAll('dt')
@@ -339,7 +349,12 @@ def scrapGame(gameId,emulatorname,filename):
 				dateTemp = nextTr.find('td',attrs={'class' : 'cdate'}).text
 				options.append((nameTemp,regionTemp,publisherTemp,dateTemp,genreTemp,developerTemp,descTemp,imgpath,filename,gameId,numberofplayerTemp))
 
-		gameData = options[chooseResult(options)]
+		choice = chooseResult(options)
+		if choice is None:
+			print "skipping game ..."
+			return None
+		gameData = options[choice]
+
 		print "Downloading boxart..."
 		downloadBoxart(imgSource, imgpath)
 		return gameData
@@ -364,8 +379,10 @@ def searchGames(file,platform):
 					gameLink = gameTitle.find('a')['href'][1:]
 					gameId = gameLink[gameLink.find("/")+1:gameLink.find("-")]
 					options.append((gameTitle.text.strip(),gameId))
-		gameChoice = options[chooseSearchResult(options)]
-
+		choice = chooseSearchResult(options)
+		if choice is None:
+				return None
+		gameChoice = options[choice]
 		return gameChoice
 
 
@@ -444,7 +461,7 @@ if not os.path.exists(essettings_path):
 		sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 
 ES_systems = readConfig(open(essettings_path))
-print "config" + str(ES_systems)
+
 for i,v in enumerate(ES_systems):
 	print "[%s] %s" % (i,v[0])
 try:
