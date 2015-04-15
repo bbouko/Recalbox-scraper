@@ -450,7 +450,7 @@ def gameDataToXml(gameData,filepath,gamelist):
 
 
 def statsSystem(SystemInfo) :
-	
+
 	name = SystemInfo[0]
 	emulatorname = name
 	folderRoms = SystemInfo[1]
@@ -542,6 +542,7 @@ if not os.path.exists(essettings_path):
 ES_systems = readConfig(open(essettings_path))
 
 if args.stats:
+	
 	print "Creating Stats ..."
 	for i,v in enumerate(ES_systems):
 		print "[%s] %s" % (i,v[0])
