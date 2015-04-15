@@ -19,6 +19,7 @@ import datetime
 parser = argparse.ArgumentParser(description='ES-scraper, a scraper for EmulationStation')
 parser.add_argument("-n", metavar="gameId", help="game ID", type=int)
 parser.add_argument("-r", metavar="rom link", help="game ID", type=str)
+parser.add_argument("-stats", help="check the gamelists files and return stats", action='store_true')
 args = parser.parse_args()
 
 GAMESDB_BASE  = "http://www.gamefaqs.com/"
@@ -154,12 +155,14 @@ def getGenre(genre):
 def skipGame(list, filepath):
 	for game in list.iter("game"):
 		if game.findtext("path") == filepath:
+			if args.stats :
+				return True
 			print "Game \"%s\" already in gamelist. Skipping... " % os.path.basename(filepath)
 			return True
 
 
 def scanFiles(SystemInfo):
-	print "System info : " + str(SystemInfo)
+
 	emulatorname = SystemInfo[0]
 	folderRoms = SystemInfo[1]
 	extension = SystemInfo[2]
@@ -442,10 +445,76 @@ def gameDataToXml(gameData,filepath,gamelist):
 	if gameData[8] is not None:
 		region.text = getRegion(str(gameData[8]))
 
-
-
 	#exportList(gamelist, gamelist_path,gamelistExists,existinglist)
 	return gamelist
+
+
+def statsSystem(SystemInfo) :
+	
+	name = SystemInfo[0]
+	emulatorname = name
+	folderRoms = SystemInfo[1]
+	extension = SystemInfo[2]
+	platformname = SystemInfo[3]
+	platform = getPlatformId(platformname)
+	#platforms = getPlatformId(SystemInfo[3])
+
+	gamelistExists = False
+	existinglist = None
+
+
+	gamelist = Element('gameList')
+	#folderRoms = os.path.expanduser(folderRoms)
+	destinationFolder = folderRoms
+
+	try:
+		os.chdir(destinationFolder)
+	except OSError as e:
+		print "%s : %s" % (destinationFolder, e.strerror)
+		return
+	print "-------------------------------"
+	print "Starting system stats : %s" % name
+	print "Scanning folder..(%s)" % folderRoms
+	gamelist_path = gamelists_path+"%s/gamelist.xml" % emulatorname
+	if os.path.exists(gamelist_path):
+		try:
+			existinglist = ET.parse(gamelist_path)
+			gamelistExists=True
+		except:
+			gamelistExists = False
+			print "There was an error parsing the list or file is empty"
+			return
+
+	scrapped = 0
+	total = 0
+
+	for root, dirs, allfiles in os.walk(folderRoms, followlinks=True):
+		allfiles.sort()
+		for files in allfiles:
+			if extension=="" or files.endswith(tuple(extension.split(' '))):
+				total += 1
+				try:
+					filepath = os.path.abspath(os.path.join(root, files))
+					filepath = filepath.replace(folderRoms, ".")
+					filename = os.path.splitext(files)[0]
+					if gamelistExists:
+						if skipGame(existinglist,filepath):
+							scrapped += 1
+							continue
+						print "Not scrapped : %s" % filename
+
+				except KeyboardInterrupt:
+					print "Ctrl+C detected. Closing work now..."
+					break
+				except Exception as e:
+					print "Exception caught! %s" % e
+
+	print "System Stats : %s" % name
+	print "Total games in rom dir : %d" % total
+	print "Scrapped games in gamelist.xml : %d" % scrapped
+	print "Games to scrap : %d" % (total - scrapped)
+
+
 
 
 if os.getuid() == 0:
@@ -472,11 +541,25 @@ if not os.path.exists(essettings_path):
 
 ES_systems = readConfig(open(essettings_path))
 
-for i,v in enumerate(ES_systems):
-	print "[%s] %s" % (i,v[0])
-try:
-	var = int(raw_input("System ID: "))
-	scanFiles(ES_systems[var])
-except Exception, e:
-		print "erreur choix" + str(e)
+if args.stats:
+	print "Creating Stats ..."
+	for i,v in enumerate(ES_systems):
+		print "[%s] %s" % (i,v[0])
+	try:
+		var = int(raw_input("System ID: "))
+
+		statsSystem(ES_systems[var])
+	except Exception, e:
+		print "ERROR : "+str(e)
 		sys.exit()
+
+
+else:
+	for i,v in enumerate(ES_systems):
+		print "[%s] %s" % (i,v[0])
+	try:
+		var = int(raw_input("System ID: "))
+		scanFiles(ES_systems[var])
+	except Exception, e:
+			print "erreur choix" + str(e)
+			sys.exit()
