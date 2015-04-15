@@ -319,10 +319,10 @@ def scrapGame(gameId,emulatorname,filename):
 
 
 	try:
-		captcha = soupData.find('table', {'id': 'recaptcha_table'})
+		captcha = soupData.find_all('span', {'class': 'warning'})
 		if  captcha is not None and "CAPTCHA" in str(captcha):
 			raw_input("Complete the CAPTCHA on gamefaqs.com and press enter to continue ....")
-		captcha2 = soupDesc.find('table', {'id': 'recaptcha_table'})
+		captcha2 = soupDesc.find_all('span', {'class': 'warning'})
 		if  captcha2 is not None and "CAPTCHA" in str(captcha2):
 			raw_input("Complete the CAPTCHA on gamefaqs.com and press enter to continue ....")
 
