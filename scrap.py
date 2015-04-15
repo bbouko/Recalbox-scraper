@@ -319,6 +319,13 @@ def scrapGame(gameId,emulatorname,filename):
 
 
 	try:
+		captcha = soupData.find('table', {'id': 'recaptcha_table'})
+		if  captcha is not None and "CAPTCHA" in str(captcha):
+			raw_input("Complete the CAPTCHA on gamefaqs.com and press enter to continue ....")
+		captcha2 = soupDesc.find('table', {'id': 'recaptcha_table'})
+		if  captcha2 is not None and "CAPTCHA" in str(captcha2):
+			raw_input("Complete the CAPTCHA on gamefaqs.com and press enter to continue ....")
+
 		options = []
 		imgSource = soupDesc.find('img',attrs = {'class' : 'boxshot'})["src"].replace("thumb.jpg", "front.jpg")
 		imgpath = boxart_path + "%s/%s-image%s" % (emulatorname, filename,os.path.splitext(imgSource)[1])
@@ -371,6 +378,9 @@ def searchGames(file,platform):
 
 	try:
 		soupList = BeautifulSoup( urllib2.urlopen(gamereqList))
+		captcha = soupList.find_all('span', {'class': 'warning'})
+		if  captcha is not None and "CAPTCHA" in str(captcha):
+			raw_input("Complete the CAPTCHA on gamefaqs.com and press enter to continue ....")
 		scrapData = soupList.find_all('div', {'class': 'pod'})
 		for elem in scrapData :
 			if elem.findNext('div').text ==  "Best Matches":
