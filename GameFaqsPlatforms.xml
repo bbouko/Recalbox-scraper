@@ -35,4 +35,56 @@
 		<es>pcengine</es>
 		<db>53</db>
 	</platform>	
+	<platform>
+		<es>atari2600</es>
+		<db>6</db>
+	</platform>
+	<platform>
+		<es>fba</es>
+		<db>2</db>
+	</platform>
+	<platform>
+		<es>fba_liberto</es>
+		<db>2</db>
+	</platform>
+	<platform>
+		<es>fds</es>
+		<db>47</db>
+	</platform>
+	<platform>
+		<es>gba</es>
+		<db>91</db>
+	</platform>
+	<platform>
+		<es>mame</es>
+		<db>2</db>
+	</platform>
+	<platform>
+		<es>msx</es>
+		<db>40</db>
+	</platform>
+	<platform>
+		<es>n64</es>
+		<db>84</db>
+	</platform>
+	<platform>
+		<es>psx</es>
+		<db>78</db>
+	</platform>
+	<platform>
+		<es>segacd</es>
+		<db>65</db>
+	</platform>
+	<platform>
+		<es>sg1000</es>
+		<db>43</db>
+	</platform>
+	<platform>
+		<es>virtualboy</es>
+		<db>83</db>
+	</platform>
+	<platform>
+		<es>genesis</es>
+		<db>54</db>
+	</platform>
 </platforms>
