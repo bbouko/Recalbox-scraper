@@ -87,4 +87,8 @@
 		<es>genesis</es>
 		<db>54</db>
 	</platform>
+    <platform>
+		<es>ngp</es>
+		<db>89</db>
+	</platform>
 </platforms>

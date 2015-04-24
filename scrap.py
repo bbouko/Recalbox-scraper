@@ -17,8 +17,6 @@ import sys
 import datetime
 
 parser = argparse.ArgumentParser(description='ES-scraper, a scraper for EmulationStation')
-parser.add_argument("-n", metavar="gameId", help="game ID", type=int)
-parser.add_argument("-r", metavar="rom link", help="game ID", type=str)
 parser.add_argument("-stats", help="check the gamelists files and return stats", action='store_true')
 args = parser.parse_args()
 
@@ -523,21 +521,21 @@ if os.getuid() == 0:
 else:
 	homepath = os.path.expanduser('~')
 
-essettings_path = homepath + "/Documents/Recalbox-scraper/es_systems.cfg"
-gamelists_path = homepath + "/Documents/Recalbox-scraper/gamelists/"
-boxart_path = homepath + "/Documents/Recalbox-scraper/downloaded_images/"
+essettings_path = homepath + "/.emulationstation/es_systems.cfg"
+gamelists_path = homepath + "/.emulationstation/gamelists/"
+boxart_path = homepath + "/.emulationstation/downloaded_images/"
 
 getPlatforms()
 
 
-if not os.path.exists(essettings_path):
-	essettings_path = "/etc/emulationstation/es_systems.cfg"
-
-	try:
-		print "try to open : " + essettings_path
-		config=open(essettings_path)
-	except IOError as e:
-		sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
+#if not os.path.exists(essettings_path):
+#	essettings_path = "/etc/emulationstation/es_systems.cfg"
+#
+#	try:
+#		print "try to open : " + essettings_path
+#		config=open(essettings_path)
+#	except IOError as e:
+#		sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 
 ES_systems = readConfig(open(essettings_path))
 
